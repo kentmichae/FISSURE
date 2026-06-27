@@ -1,6 +1,52 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2026-6-27
+
+Migrate fixed detector tab to plugin action workflow.
+
+### Added
+
+- Added .gitkeep to plugin hardware folders for iq_record and iq_playback.
+- Added Fixed detector selected-node action launch support from the TSI tab.
+- Added Fixed detector GUI/headless run mode selection for local nodes.
+- Added throttled Fixed detector embedded-block detection output.
+- Added Fixed detector result population for frequency, power, and time in the detector and conditioner tables.
+- Added Fixed detector operation state tracking using operation IDs.
+
+### Changed
+
+- Removed Automation tab from TSI tab.
+- Updated Fixed detector workflow to use Base fixed_detection plugin actions instead of the legacy detector launch path.
+- Updated Fixed detector B2x0 flow graph layout under maint-3.8 b2x0 headless/gui folders.
+- Changed Fixed detector default sample rate to 1 MSps.
+- Changed Fixed detector minimum detection interval default to 1 second.
+- Updated Fixed detector operation parameter handling for sample rate, threshold, gain, channel, antenna, run mode, and minimum interval.
+- Updated Fixed detector detections to flow through normalized detection/CoT handling while still appearing in Tactical.
+
+### Fixed
+
+- Removed extra files in Plugins folder.
+- Fixed counts for Alerts, Exploits, and Reports in Sensor Nodes tab.
+- Fixed Fixed detector GUI/headless detection flooding by adding embedded-block and operation-level throttling.
+- Fixed local node mode reporting so local-only GUI Fixed detector controls can be enabled correctly.
+
+## 2026-6-26
+
+Fixing installer style sheet bugs.
+
+### Changed
+
+- Updated Contributions section in the README
+- Moved idea_list.md to ./docs/gsoc/2023_project_ideas.md
+- Moved Base plugin detection flow graphs into GNU Radio version-specific `maint-3.8` and `maint-3.10` folders.
+- Updated Base fixed detection, LFM beacon detection, and LFM beacon geolocation operations to resolve flow graph paths using the active GNU Radio maint version.
+
+### Fixed
+
+- Fixed missing installer operating system radio buttons after icon assets were moved from `docs/Icons` to `UI/Icons`.
+- Updated plugin flow graph compilation to skip GNU Radio version-specific `maint-*` folders that do not match the installer target.
+
 ## 2026-6-25
 
 Add Tactical SOI, target, and artifact row controls with artifact refresh and compact metadata styling.
