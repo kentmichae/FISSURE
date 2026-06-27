@@ -522,7 +522,7 @@ class TacticalMapView(QtCore.QObject):
     # -------------------------------------------------------------------------
 
     def _configure_graphics_view(self):
-        self.graphics_view.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        self.graphics_view.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         self.graphics_view.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.graphics_view.setResizeAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.graphics_view.setRenderHint(QtGui.QPainter.Antialiasing, True)

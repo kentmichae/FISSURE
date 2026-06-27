@@ -9,6 +9,8 @@ services:
       - "${POSTGRES_EXTERNAL_PORT}:${POSTGRES_INTERNAL_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fissure-net
   pgadmin:
     image: dpage/pgadmin4:9.2.0
     environment:
@@ -17,7 +19,16 @@ services:
     depends_on:
       - db
     ports:
-      - "3000:80"
+      - "5050:80"
+    networks:
+      - fissure-net
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+networks:
+  fissure-net:
+    driver: bridge
 
 volumes:
   postgres_data:
+  pgadmin_data:

@@ -17,7 +17,48 @@ import qasync
 import asyncio
 import time
 import matplotlib
-matplotlib.use('Qt5Agg')
+
+def _get_matplotlib_backend():
+    _backend = os.environ.get('MPL_BACKEND', 'qt5agg')
+    matplotlib.use(_backend, force=True)
+    return _backend
+
+# Lazy initialization: only call matplotlib.use() when first actually needed.
+_matplotlib_backend_initialized = False
+_matplotlib_backend = 'qt5agg'  # default
+_matplotlib_backend_error = None
+
+def _ensure_matplotlib_backend():
+    global _matplotlib_backend_initialized, _matplotlib_backend, _matplotlib_backend_error
+    if _matplotlib_backend_initialized:
+        return None  # already initialized
+    if _matplotlib_backend_error is not None:
+        raise _matplotlib_backend_error
+    
+    # Try the user-specified backend from environment
+    _user_backend = os.environ.get('MPL_BACKEND', 'qt5agg')
+    # Try the explicit 'qtagg' backend (PyQt6 route) first
+    try:
+        matplotlib.use('qtagg', force=True)
+        _MATPLOTLIB_BACKEND = 'qtagg'
+        _matplotlib_backend = 'qtagg'
+        return None
+    except Exception as _e:
+        # If 'qtagg' fails, try the explicit backend from environment
+        try:
+            matplotlib.use(_user_backend, force=True)
+            _MATPLOTLIB_BACKEND = _user_backend
+            _matplotlib_backend = _user_backend
+            return None
+        except Exception as _e2:
+            # If both fail, store error to raise on first UI draw (not import)
+            _matplotlib_backend = _user_backend
+            _MATPLOTLIB_BACKEND = _user_backend
+            _matplotlib_backend_error = _e2
+            return _e2
+        
+# Call on first actual UI initialization (inside _init_ui or similar)
+# Do NOT call here — that was the blocker.
 
 # Decision Tree
 from sklearn.tree import DecisionTreeClassifier

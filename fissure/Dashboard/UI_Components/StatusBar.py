@@ -18,7 +18,8 @@ class VLine(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super(VLine, self).__init__(parent)
         self.parent = parent
-        self.setFrameShape(self.VLine | self.Sunken)
+        self.setFrameShape(QtWidgets.QFrame.Shape.VLine)
+        self.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
         # self.setMaximumWidth(2)
 
 

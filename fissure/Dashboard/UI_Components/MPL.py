@@ -66,7 +66,7 @@ class MPLCanvas(FigureCanvasQTAgg):
         # Other
         FigureCanvasQTAgg.__init__(self, self.fig)
         self.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         FigureCanvasQTAgg.updateGeometry(self)
 
 
@@ -292,7 +292,7 @@ class MPLTuningCanvas(FigureCanvasQTAgg):
         # Other
         FigureCanvasQTAgg.__init__(self, fig)
         self.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         FigureCanvasQTAgg.updateGeometry(self)
 
         fig.canvas.mpl_connect("axes_leave_event", self.leave_axes)
@@ -557,7 +557,7 @@ class MPL_IQCanvas(FigureCanvasQTAgg):
         # Other
         FigureCanvasQTAgg.__init__(self, self.fig)
         self.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         FigureCanvasQTAgg.updateGeometry(self)
 
         # Cursor
@@ -763,7 +763,7 @@ class MPLEntropyCanvas(FigureCanvasQTAgg):
         # Other
         FigureCanvasQTAgg.__init__(self, fig)
         self.setParent(parent)
-        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        FigureCanvasQTAgg.setSizePolicy(self, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         FigureCanvasQTAgg.updateGeometry(self)
 
 

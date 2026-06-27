@@ -819,7 +819,7 @@ def make_tactical_parameter_widget_compact(widget):
     widget.setMaximumHeight(24)
 
     size_policy = widget.sizePolicy()
-    size_policy.setVerticalPolicy(QtWidgets.QSizePolicy.Fixed)
+    size_policy.setVerticalPolicy(QtWidgets.QSizePolicy.Policy.Fixed)
     widget.setSizePolicy(size_policy)
 
     if isinstance(widget, QtWidgets.QAbstractSpinBox):

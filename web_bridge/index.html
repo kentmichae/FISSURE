@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FISSURE Web GUI — Cognitive EW Command Center</title>
+<style>
+/* ── CSS Variables ───────────────────────────────────────────── */
+:root {
+  --bg-primary: #0a0e17;    --bg-secondary: #111827;   --bg-card: #1a2332;
+  --bg-input: #0d1320;
+  --border: #1e2d3d;        --border-hover: #2a3f55;
+  --text-primary: #e2e8f0;  --text-secondary: #94a3b8;  --text-muted: #64748b;
+  --accent: #06b6d4;        --accent-dim: #0891b2;      --accent-glow: rgba(6,182,212,.15);
+  --success: #10b981;       --warning: #f59e0b;         --danger: #ef4444;
+  --radius: 6px;            --shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace; background: var(--bg-primary); color: var(--text-primary); font-size: 13px; height: 100vh; overflow: hidden; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ── Layout ──────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ── Top Bar ─────────────────────────────────────────────── */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  height: 40px; flex-shrink: 0; gap: 12px;
+}
+#topbar-left { display: flex; align-items: center; gap: 12px; }
+#topbar-title { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: .5px; }
+#topbar-title .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--danger); }
+#topbar-title .dot.connected { background: var(--success); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+#topbar-center { flex: 1; display: flex; align-items: center; gap: 24px; justify-content: center; }
+.stat-pill { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+.stat-pill .val { color: var(--accent); font-weight: 600; }
+#topbar-right { display: flex; align-items: center; gap: 8px; }
+#topbar-right button { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 10px; border-radius: var(--radius); font-size: 11px; cursor: pointer; font-family: inherit; }
+#topbar-right button:hover { border-color: var(--accent); color: var(--accent); }
+#topbar-right button.active { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+
+/* ── Main Split Pane ───────────────────────────────────── */
+#content { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Left Panel (Nav + Controls) ────────────────────────── */
+#left-panel {
+  width: 220px; min-width: 220px; background: var(--bg-secondary);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto;
+}
+#nav-tabs { display: flex; flex-direction: column; padding: 8px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px; color: var(--text-muted);
+  cursor: pointer; border-left: 2px solid transparent; transition: .15s; font-size: 12px;
+}
+.nav-item:hover { background: var(--accent-glow); color: var(--text-primary); }
+.nav-item.active { border-left-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.nav-item .icon { font-size: 14px; width: 20px; text-align: center; }
+
+/* ── Control Panels ─────────────────────────────────────── */
+.panel-section { padding: 12px 14px; border-top: 1px solid var(--border); }
+.panel-section h3 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: .5px; }
+.ctrl-group { margin-bottom: 10px; }
+.ctrl-group label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.ctrl-group input, .ctrl-group select {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary);
+  padding: 5px 8px; border-radius: var(--radius); font-size: 11px; font-family: inherit; outline: none;
+}
+.ctrl-group input:focus, .ctrl-group select:focus { border-color: var(--accent); }
+.ctrl-btn {
+  width: 100%; padding: 6px 10px; margin-top: 4px; background: var(--accent-dim);
+  border: 1px solid var(--accent); color: #fff; border-radius: var(--radius);
+  cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600; transition: .15s;
+}
+.ctrl-btn:hover { background: var(--accent); }
+.ctrl-btn.danger { background: rgba(239,68,68,.15); border-color: var(--danger); color: var(--danger); }
+.ctrl-btn.danger:hover { background: var(--danger); color: #fff; }
+.ctrl-row { display: flex; gap: 6px; margin-top: 4px; }
+.ctrl-row .ctrl-btn { flex: 1; margin: 0; }
+
+/* ── Right Panel (View) ─────────────────────────────────── */
+#right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#view-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-secondary); padding: 0 8px; flex-shrink: 0; }
+.view-tab {
+  padding: 8px 16px; font-size: 11px; color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: .15s;
+}
+.view-tab:hover { color: var(--text-primary); }
+.view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+#view-content { flex: 1; overflow-y: auto; padding: 16px; }
+
+/* ── View: Dashboard ────────────────────────────────────── */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dash-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
+.dash-card .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.dash-card .value { font-size: 22px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+.dash-card .sub  { font-size: 11px; color: var(--text-secondary); }
+.dash-card.status-ok .value { color: var(--success); }
+.dash-card.status-warn .value { color: var(--warning); }
+.dash-card.status-err .value { color: var(--danger); }
+
+/* ── View: Signal Plot ──────────────────────────────────── */
+#plot-container { width: 100%; height: 260px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; }
+#plot-canvas { width: 100%; height: 100%; }
+.plot-toolbar { display: flex; gap: 6px; padding: 8px 0; align-items: center; }
+.plot-toolbar button { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 10px; border-radius: var(--radius); cursor: pointer; font-size: 10px; font-family: inherit; }
+.plot-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.plot-toolbar button.active { background: var(--accent-dim); color: #fff; border-color: var(--accent); }
+.plot-toolbar select { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); padding: 4px 8px; border-radius: var(--radius); font-size: 10px; font-family: inherit; }
+.plot-toolbar .spacer { flex: 1; }
+.plot-toolbar .range-label { font-size: 10px; color: var(--text-muted); margin-left: 4px; }
+
+/* ── View: Log ──────────────────────────────────────────── */
+#log-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); height: calc(100vh - 220px); overflow-y: auto; padding: 8px; font-size: 11px; }
+.log-entry { padding: 2px 6px; border-bottom: 1px solid rgba(30,45,61,.5); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.log-entry .ts { color: var(--text-muted); margin-right: 6px; }
+.log-entry.HB { color: var(--success); }
+.log-entry.MSG { color: var(--text-primary); }
+.log-entry.ERR { color: var(--danger); }
+.log-entry .ch { color: var(--text-muted); margin-right: 4px; font-size: 10px; }
+
+/* ── View: Attacks / SOI ───────────────────────────────── */
+.table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 10px; }
+.table-wrap .th { display: grid; background: var(--bg-secondary); padding: 6px 10px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.table-row { display: grid; padding: 6px 10px; font-size: 11px; border-bottom: 1px solid var(--border); }
+.table-row:hover { background: var(--accent-glow); }
+.table-row th:first-child { text-align: left; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.badge.hbs { background: rgba(16,185,129,.15); color: var(--success); }
+.badge.wo { background: rgba(245,158,11,.15); color: var(--warning); }
+.badge.lo { background: rgba(239,68,68,.15); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ══ TOP BAR ══ -->
+  <div id="topbar">
+    <div id="topbar-left">
+      <span class="dot" id="conn-dot"></span>
+      <span id="topbar-title">FISSURE</span>
+    </div>
+    <div id="topbar-center">
+      <div class="stat-pill">HB <span class="val" id="s-hb">0</span></div>
+      <div class="stat-pill">Messages <span class="val" id="s-msg">0</span></div>
+      <div class="stat-pill">Sessions <span class="val" id="s-sess">0</span></div>
+      <div class="stat-pill">Attacks <span class="val" id="s-attk">0</span></div>
+    </div>
+    <div id="topbar-right">
+      <button id="btn-reconnect" title="Reconnect">↻</button>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div id="content">
+    <!-- LEFT: Navigation + Controls -->
+    <div id="left-panel">
+      <div id="nav-tabs">
+        <div class="nav-item active" data-view="system" onclick="switchView('system')">
+          <span class="icon">⊞</span> System
+        </div>
+        <div class="nav-item" data-view="signals" onclick="switchView('signals')">
+          <span class="icon">◉</span> Signals
+        </div>
+        <div class="nav-item" data-view="attacks" onclick="switchView('attacks')">
+          <span class="icon">◎</span> Attacks
+        </div>
+        <div class="nav-item" data-view="soi" onclick="switchView('soi')">
+          <span class="icon">◇</span> SOI Data
+        </div>
+        <div class="nav-item" data-view="log" onclick="switchView('log')">
+          <span class="icon">▤</span> Log
+        </div>
+      </div>
+      <div id="control-panels"></div>
+    </div>
+
+    <!-- RIGHT: View Content -->
+    <div id="right-panel">
+      <div id="view-tabs">
+        <div class="view-tab active" data-view="system">System</div>
+        <div class="view-tab" data-view="signals">Signals</div>
+        <div class="view-tab" data-view="attacks">Attacks</div>
+        <div class="view-tab" data-view="soi">SOI</div>
+        <div class="view-tab" data-view="log">Console</div>
+      </div>
+      <div id="view-content">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════
+const state = {
+  connected: false,
+  currentView: 'system',
+  heartbeatCount: 0,
+  msgCount: 0,
+  sessions: 0,
+  attacks: 0,
+  lastHb: 0,
+  wsURL: `ws://${location.host}/ws`,
+  signals: [],
+  attacks: [],
+  sei: [],
+  log: [],
+};
+
+const MAX_LOG = 3000;
+let ws;
+
+// ════════════════════════════════════════════════════
+// WebSocket
+// ════════════════════════════════════════════════════
+function connectWS() {
+  if (ws) ws.close();
+  ws = new WebSocket(state.wsURL);
+  const dot = document.getElementById('conn-dot');
+  dot.className = 'dot';
+
+  ws.onopen = () => {
+    state.connected = true;
+    dot.className = 'dot connected';
+    logMsg('INFO', '> Connected to FISSURE Bridge');
+  };
+  ws.onerror = () => {
+    state.connected = false;
+    dot.className = 'dot';
+    logMsg('ERR', '> Connection error');
+  };
+  ws.onclose = () => {
+    state.connected = false;
+    dot.className = 'dot';
+    logMsg('ERR', '> Disconnected');
+  };
+  ws.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'HB') {
+        state.heartbeatCount++;
+        state.lastHb = data.timestamp;
+        updateStats();
+      }
+      if (data.type === 'MSG' && data.message) {
+        state.msgCount++;
+        processMessage(data.message);
+        updateStats();
+      }
+    } catch(err) {
+      logMsg('ERR', `Parse error: ${err.message}`);
+    }
+  };
+}
+
+function sendCommand(type, params) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    logMsg('ERR', '> Send failed: not connected');
+    return;
+  }
+  const msg = { type, parameters: params || {} };
+  ws.send(JSON.stringify(msg));
+  logMsg('INFO', `> ${type}`);
+}
+
+// ════════════════════════════════════════════════════
+// Signal Processing
+// ════════════════════════════════════════════════════
+function processMessage(msg) {
+  const name = msg.MessageName;
+
+  if (name === 'SOI' || name === 'Wideband') {
+    const sig = {
+      freq: msg.Frequency || msg['Frequency'] || 0,
+      mod: msg['Modulation Type'] || msg['ModulationType'] || 'unknown',
+      pwr: msg.Power || 0,
+      bw: msg.Bandwidth || 0,
+      ts: msg.Timestamp || msg.Time || Date.now(),
+      conf: msg.Confidence || 0,
+    };
+    state.signals.push(sig);
+    if (state.signals.length > 2000) state.signals.shift();
+    renderView();
+  }
+
+  if (name === 'Attack') {
+    state.attacks.push({
+      name: msg.MessageName || 'Attack',
+      freq: msg.Parameters?.Frequency || 0,
+      type: msg.Parameters?.AttackType || 'general',
+      ts: Date.now(),
+    });
+    renderView();
+  }
+
+  if (name === 'SessionStart' || name === 'SessionEnd') {
+    if (name === 'SessionStart') state.sessions = (state.sessions || 0) + 1;
+    else state.sessions = Math.max(0, (state.sessions || 0) - 1);
+    updateStats();
+  }
+
+  if (name === 'SessionEnd' || name === 'SessionStart') {
+    state.sessions += 1;
+  }
+  updateStats();
+}
+
+// ════════════════════════════════════════════════════
+// Render: Views
+// ════════════════════════════════════════════════════
+function switchView(view) {
+  state.currentView = view;
+  // Update nav
+  document.querySelectorAll('#nav-tabs .nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  document.querySelectorAll('#view-tabs .view-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  renderView();
+}
+
+function renderView() {
+  const container = document.getElementById('view-content');
+  switch (state.currentView) {
+    case 'system': renderSystem(container); break;
+    case 'signals': renderSignals(container); break;
+    case 'attacks': renderAttacks(container); break;
+    case 'soi': renderSOI(container); break;
+    case 'log': renderLog(container); break;
+  }
+}
+
+function renderSystem(el) {
+  const now = Date.now();
+  const uptime = state.lastHb ? `${((now - state.lastHb)/1000).toFixed(1)}s ago` : 'never';
+  const cards = [
+    { status: state.connected ? 'ok' : 'err', label: 'Bridge Connection', value: state.connected ? 'Connected' : 'Disconnected', sub: uptime },
+    { status: 'ok', label: 'HeartBeat Count', value: state.heartbeatCount, sub: 'from HIPrfISR' },
+    { status: 'ok', label: 'Messages', value: state.msgCount, sub: 'received' },
+    { status: state.sessions > 0 ? 'ok' : 'warn', label: 'Active Sessions', value: state.sessions, sub: 'active TAK sessions' },
+    { status: state.attacks.length > 0 ? 'warn' : 'ok', label: 'Active Attacks', value: state.attacks.length, sub: 'pending RF attacks' },
+  ];
+  const html = `
+    <div class="dash-grid">${cards.map(c => `
+      <div class="dash-card status-${c.status}">
+        <div class="label">${c.label}</div>
+        <div class="value">${c.value}</div>
+        <div class="sub">${c.sub}</div>
+      </div>
+    `).join('')}
+    </div>
+    <div class="table-wrap">
+      <div class="th" style="grid-template-columns:120px 80px 60px 1fr">Time<br>Frequency<br>Mod</div>
+      <div class="th" style="grid-template-columns:80px 1fr 1fr">Power<br>Status<br>Details</div>
+    </div>
+    <div style="margin-top:8px">
+      <span style="color:var(--text-muted);font-size:11px">Showing last 500 of ${state.signals.length} signals</span>
+      <pre style="max-height:400px;overflow-y:auto;margin-top:6px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:11px">${
+        state.signals.slice(-500).map(s =>
+          `${new Date(s.ts).toISOString().substr(11,8)}  ${s.freq !==0 ? s.freq.toFixed(2)+' MHz' : '-'}  ${s.mod}`
+        ).join('\n')
+      }</pre>
+    </div>
+  `;
+  el.innerHTML = html;
+}
+
+function renderSignals(el) {
+  // Spectrum display
+  const recent = state.signals.slice(-100);
+  const maxFreq = Math.max(...recent.map(s => s.freq), 1);
+  const canvasH = 220;
+  const canvasW = 800;
+  const plotData = recent.map((s, i) => {
+    const x = (s.freq / maxFreq) * canvasW;
+    const y = canvasH - (s.pwr > 0 && s.pwr <= 1 ? s.pwr * canvasH : canvasH - 10);
+    return { x, y: Math.max(5, Math.min(canvasH - 5, y)), freq: s.freq, mod: s.mod };
+  });
+
+  el.innerHTML = `
+    <div class="plot-toolbar">
+      <button class="active">Spectrum</button>
+      <button>Constellation</button>
+      <select><option>All Bands</option><option>Sub-GHz (315/433 MHz)</option><option>2.4 GHz</option><option>5.8 GHz</option></select>
+      <span class="spacer"></span>
+      <span style="font-size:10px;color:var(--text-muted)">${state.signals.length} signals</span>
+    </div>
+    <div id="plot-container">
+      <canvas id="plot-canvas" width="${canvasW}" height="${canvasH}"></canvas>
+    </div>
+    <pre style="max-height:200px;overflow-y:auto;margin-top:6px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:11px">${
+      recent.map(s =>
+        `${s.freq ? s.freq.toFixed(0)+' MHz' : '—'}  ${s.mod}  PWR:${s.pwr.toFixed(1)}  BW:${s.bw ? s.bw.toFixed(0)+' Hz' : '—'}`
+      ).join('\n')
+    }</pre>
+  `;
+  drawPlot(canvasW, canvasH, plotData);
+}
+
+function drawPlot(W, H, points) {
+  const canvas = document.getElementById('plot-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Spectrum background
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(6,182,212,.08)');
+  grad.addColorStop(1, 'rgba(6,182,212,.01)');
+  ctx.fillStyle = 'var(--bg-card)';
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(30,45,61,.3)';
+  ctx.lineWidth = 0.5;
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Plot line
+  if (points.length < 2) return;
+  ctx.strokeStyle = '#06b6d4';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+
+  // Glow
+  ctx.strokeStyle = 'rgba(6,182,212,.3)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+
+  // Points
+  points.forEach(p => {
+    if (p.power > 0) {
+      ctx.fillStyle = '#06b6d4';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
+function renderAttacks(el) {
+  el.innerHTML = `
+    <div class="plot-toolbar">
+      <button>Attack Library</button>
+      <button>New Attack</button>
+      <span class="spacer"></span>
+      <span style="font-size:10px;color:var(--text-muted)">${state.attacks.length} attacks</span>
+    </div>
+    <div class="table-wrap">
+      ${state.attacks.length === 0 ? '<div style="padding:20px;color:var(--text-muted);text-align:center">No active attacks</div>' :
+        state.attacks.map(a => `
+          <div class="table-row" style="grid-template-columns:120px 120px 100px 1fr">
+            <span>${new Date(a.ts).toISOString().substr(11,8)}</span>
+            <span>${a.freq ? a.freq.toFixed(0)+' MHz' : '—'}</span>
+            <span class="badge wo">active</span>
+            <span>${a.type}</span>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+
+function renderSOI(el) {
+  const soi = state.signals.filter(s => s.conf > 0);
+  el.innerHTML = `
+    <div class="plot-toolbar">
+      <button>SOI Filter</button>
+      <button>Import SOI</button>
+      <span class="spacer"></span>
+      <span style="font-size:10px;color:var(--text-muted)">${soi.length} SOI records</span>
+    </div>
+    <div class="table-wrap">
+      <div class="th" style="grid-template-columns:120px 140px 120px 80px 1fr">
+        Timestamp<br>Frequency<br>Modulation<br>PW/BW<br>Confidence
+      </div>
+      ${soi.length === 0 ? '<div style="padding:20px;color:var(--text-muted);text-align:center">No SOI signals detected yet</div>' :
+        soi.slice(-200).map(s => `
+          <div class="table-row" style="grid-template-columns:120px 140px 120px 80px 1fr">
+            <span>${new Date(s.ts).toISOString().substr(0,19)}</span>
+            <span>${s.freq ? s.freq.toFixed(0)+' MHz' : '—'}</span>
+            <span>${s.mod}</span>
+            <span>${s.bw ? s.bw.toFixed(0)+' Hz' : '—'}</span>
+            <span class="${s.conf > 0.7 ? 'badge hbs' : s.conf > 0.4 ? 'badge wo' : 'badge lo'}">${(s.conf*100).toFixed(0)}%</span>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+
+function renderLog(el) {
+  const rows = state.log.slice(-200);
+  el.innerHTML = `
+    <div style="padding:0 0 4px;font-size:10px;color:var(--text-muted)">Last ${state.log.length} of ${state.log.length} entries</div>
+    <div id="log-box">${rows.map(e =>
+      `<div class="log-entry ${e.type}"><span class="ts">${e.time}</span><span class="ch">[${e.type.padEnd(5)}]</span>${e.text}</div>`
+    ).join('')}</div>
+  `;
+  const box = document.getElementById('log-box');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+// ════════════════════════════════════════════════════
+// Controls
+// ════════════════════════════════════════════════════
+function buildControls() {
+  const panels = document.getElementById('control-panels');
+  panels.innerHTML = `
+    <div class="panel-section" id="panel-system">
+      <h3>Session Control</h3>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" onclick="sendCommand('SessionStart',{source:'webgui'})">▶ Start</button>
+        <button class="ctrl-btn danger" onclick="sendCommand('SessionEnd',{source:'webgui'})">⏹ Stop</button>
+      </div>
+    </div>
+    <div class="panel-section" id="panel-signals">
+      <h3>Signal Acquisition</h3>
+      <div class="ctrl-group">
+        <label>Center Frequency (MHz)</label>
+        <input type="text" id="freq-in" value="2412" placeholder="e.g. 2412">
+      </div>
+      <div class="ctrl-group">
+        <label>Bandwidth (MHz)</label>
+        <input type="text" id="bw-in" value="20" placeholder="e.g. 20">
+      </div>
+      <div class="ctrl-btn" onclick="sendCommand('SetFrequencies',{
+        frequency: parseFloat(document.getElementById('freq-in').value)||2412,
+        bandwidth: parseFloat(document.getElementById('bw-in').value)||20
+      })">Set Frequency</div>
+    </div>
+    <div class="panel-section" id="panel-attacks">
+      <h3>Attack Configuration</h3>
+      <div class="ctrl-group">
+        <label>Attack Type</label>
+        <select id="atk-type">
+          <option value="deception">Signal Deception</option>
+          <option value="jamming">Jamming</option>
+          <option value="spoofing">Spoofing</option>
+          <option value="replay">Replay Attack</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label>Target Freq (MHz)</label>
+        <input type="text" id="atk-freq" value="2412">
+      </div>
+      <div class="ctrl-btn" onclick="sendCommand('Attack',{
+        attackType: document.getElementById('atk-type').value,
+        Frequency: parseFloat(document.getElementById('atk-freq').value)||2412
+      })">Launch Attack</div>
+    </div>
+    <div class="panel-section" id="panel-soi">
+      <h3>SOI Filtering</h3>
+      <div class="ctrl-group">
+        <label>Minimum Confidence</label>
+        <input type="text" id="min-conf" value="0.1" step="0.01">
+      </div>
+      <div class="ctrl-btn" onclick="sendCommand('Set',{
+        variable:'soi_filter',
+        value: parseFloat(document.getElementById('min-conf').value)||0.1
+      })">Apply Filter</div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════
+// Logging & Stats
+// ════════════════════════════════════════════════════
+function logMsg(type, text) {
+  const time = new Date().toISOString().substr(11, 8);
+  state.log.push({ time, text, type });
+  if (state.log.length > MAX_LOG) state.log.shift();
+  if (state.currentView === 'log') renderView();
+}
+
+function updateStats() {
+  document.getElementById('s-hb').textContent = state.heartbeatCount;
+  document.getElementById('s-msg').textContent = state.msgCount;
+  document.getElementById('s-sess').textContent = state.sessions;
+  document.getElementById('s-attk').textContent = state.attacks.length;
+}
+
+// ════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════
+connectWS();
+buildControls();
+renderView();
+logMsg('INFO', '> FISSURE Web GUI ready — connecting to bridge...');
+
+// Auto-reconnect
+setInterval(() => {
+  if (!state.connected) connectWS();
+}, 5000);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'F') { e.preventDefault(); switchView('signals'); document.getElementById('freq-in').focus(); }
+  if (e.ctrlKey && e.key === 'S') { e.preventDefault(); sendCommand('SessionStart',{source:'webgui'}); }
+  if (e.ctrlKey && e.key === 'K') { e.preventDefault(); sendCommand('SessionEnd',{source:'webgui'}); }
+  if (e.key === 'Escape') { switchView('system'); }
+});
+</script>
+
+</body>
+</html>
